@@ -186,7 +186,7 @@ bool Species::print_to_file(std::ostream &outFile) {
 	//Print a comment on the Species info
 	//outFile<<std::endl<<"/* Species #"<<id<<" : (Size "<<organisms.size()<<") (AF "<<ave_fitness<<") (Age "<<age<<")  */"<<std::endl<<std::endl;
 	char tempbuf[1024];
-	sprintf(tempbuf,"/* Species #%d : (Size %d) (AF %f) (Age %d)  */\n\n", id, organisms.size(), average_est, age);
+	sprintf(tempbuf,"/* Species #%d : (Size %ld) (AF %f) (Age %d)  */\n\n", id, organisms.size(), average_est, age);
 	//sprintf(tempbuf, "/* Species #%d : (Size %d) (AF %f) (Age %d)  */\n\n", id, organisms.size(), ave_fitness, age);
 	outFile << tempbuf;
 

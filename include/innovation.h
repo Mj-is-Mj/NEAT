@@ -37,10 +37,6 @@ namespace NEAT {
 	// ------------------------------------------------------------ 
 	class Innovation {
 	private:
-		enum innovtype {
-			NEWNODE = 0,
-			NEWLINK = 1
-		};
 
 		//typedef int innovtype;
 		//const int NEWNODE = 0;

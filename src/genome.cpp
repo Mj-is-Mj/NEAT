@@ -311,7 +311,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 	//Step through the connection matrix, creating connection genes
 	cmp=cm;
 	count=0;
-	for(col=1;col<=totalnodes;col++)
+	for(col=1;col<=totalnodes;col++) {
 		for(row=1;row<=totalnodes;row++) {
 			//Only try to create a link if it is in the matrix
 			//and not leading into a sensor
@@ -374,9 +374,9 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 				count++; //increment gene counter	    
 				cmp++;
 		}
+	}
 
-		delete [] cm;
-
+	delete [] cm;
 }
 
 
@@ -739,10 +739,10 @@ bool Genome::verify() {
 
 	//cout<<"Verifying Genome id: "<<this->genome_id<<endl;
 
-	if (this==0) {
-		//cout<<"ERROR GENOME EMPTY"<<endl;
-		//cin>>pause;
-	}
+	// if (this==nullptr) {
+	// 	std::cout<<"ERROR GENOME EMPTY"<<endl;
+	// 	std::cin>>pause;
+	// }
 
 	//Check each gene's nodes
 	for(curgene=genes.begin();curgene!=genes.end();++curgene) {
@@ -1636,6 +1636,10 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 
 					//ADDED: CONSIDER connections out of outputs recurrent
+					// **1 Need to investigate this:
+						// `nodepX->type` is type `enum nodetype`, which has enum values of 0 and 1.
+						// `OUTPUT` is type `enum nodeplace`, and is a constant with enum value of 2.
+						// Unless some funny business is happening, these conditions should always be false
 					if (((nodep1->type)==OUTPUT)||
 						((nodep2->type)==OUTPUT))
 						recurflag=true;
@@ -1702,6 +1706,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 
 					//ADDED: CONSIDER connections out of outputs recurrent
+					// See **1 for confusion
 					if (((nodep1->type)==OUTPUT)||
 						((nodep2->type)==OUTPUT))
 						recurflag=true;
