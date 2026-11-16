@@ -29,6 +29,7 @@
 //#include "experiments.h"
 //#include "neatmain.h"
 #include <iostream>
+#include <string>
 #include <vector>
 #include "neat.h"
 #include "population.h"
@@ -49,6 +50,7 @@ int main(int argc, char *argv[]) {
   //list<NNode*> nodelist;
 
   int pause;
+  char* exp_dir = nullptr;
 
   NEAT::Population *p=0;
 
@@ -62,13 +64,27 @@ int main(int argc, char *argv[]) {
       the numbers will be different every time we run.    */
   srand( (unsigned)time( NULL ) );
 
-  if (argc != 2) {
-    cerr << "A NEAT parameters file (.ne file) is required to run the experiments!" << endl;
+  if (argc < 2 || argc > 4) {
+    cerr << "Usage: ./neat [required: NEAT paramters (.ne) file] [optional: number of runs (overrides .ne specification)] [optional: experiment directory]" << endl;
+    // cerr << "A NEAT parameters file (.ne file) is required to run the experiments!" << endl;
     return -1;
+  }
+  
+  if (argc == 4) {
+    exp_dir = argv[3];
   }
 
   //Load in the params
   NEAT::load_neat_params(argv[1],true);
+
+  // Override number of runs from parameter file
+  if (argc >= 3) {
+    NEAT::num_runs = stoi(argv[2]);
+    if (NEAT::num_runs < 1) {
+      cerr << "Number of runs must be at least 1" << endl;
+      return -2;
+    }
+  }
 
   cout<<"loaded"<<endl;
   
@@ -102,13 +118,13 @@ int main(int argc, char *argv[]) {
   switch ( choice )
     {
     case 1:
-      p = pole1_test(100);
+      p = pole1_test(100, exp_dir);
       break;
     case 2:
-      p = pole2_test(100,1);
+      p = pole2_test(100,1, exp_dir);
       break;
     case 3:
-      p = pole2_test(100,0);
+      p = pole2_test(100,0, exp_dir);
       break;
     case 4:
       p=xor_test(100);

@@ -354,6 +354,8 @@ bool Population::speciate() {
 
 bool Population::print_to_file_by_species(char *filename) {
 
+  #ifndef DISABLE_DETAILED_FILEOUT
+
   std::vector<Species*>::iterator curspecies;
 
   std::ofstream outFile(filename,std::ios::out);
@@ -371,6 +373,8 @@ bool Population::print_to_file_by_species(char *filename) {
   }
 
   outFile.close();
+
+  #endif
 
   return true;
 

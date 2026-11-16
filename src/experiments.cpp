@@ -14,19 +14,23 @@
    limitations under the License.
 */
 #include "experiments.h"
+#include "neat.h"
+#include "path.h"
 #include <cstring>
 
-//#define NO_SCREEN_OUT 
-
 //Perform evolution on XOR, for gens generations
-Population *xor_test(int gens) {
+Population *xor_test(int gens, const char* const parent_path) {
+
     Population *pop=0;
     Genome *start_genome;
     char curword[20];
     int id;
 
-    ostringstream *fnamebuf;
     int gen;
+    char fpath[256]; // Full path to files
+    char* subpath = nullptr; // Subpath, i.e. path after outermost directory
+    char* ssubpath = nullptr;
+    int parent_pathlen = 0;
  
     int evals[NEAT::num_runs];  //Hold records for each run
     int genes[NEAT::num_runs];
@@ -38,14 +42,49 @@ Population *xor_test(int gens) {
     int totalevals=0;
     int totalgenes=0;
     int totalnodes=0;
-    int expcount;
+    int run;
     int samples;  //For averaging
+
+    // Copy parent path, or use default
+    if (parent_path != nullptr) {
+      strcpy(fpath, parent_path);
+    }
+    else {
+      strcpy(fpath, "exp_xor");
+    }
+
+    // Remove trailing slash if needed
+    parent_pathlen = strlen(fpath);
+    if (fpath[parent_pathlen-1] == '/') {
+      --parent_pathlen;
+      fpath[parent_pathlen] = '0';
+    }
+
+    // If non-empty path
+    if (parent_pathlen > 0) {
+      // Find available directory
+      makeNextAvailDir(fpath);
+      parent_pathlen = strlen(fpath);
+
+      // Update subpath pointer
+      subpath = fpath + parent_pathlen;
+    }
+    // If empty path
+    else {
+      *fpath = '0';
+      subpath = fpath;
+    }
+
+    // Add trailing slash
+    *subpath = '/';
+    ++subpath;
+    ++parent_pathlen;
 
     memset (evals, 0, NEAT::num_runs * sizeof(int));
     memset (genes, 0, NEAT::num_runs * sizeof(int));
     memset (nodes, 0, NEAT::num_runs * sizeof(int));
 
-    ifstream iFile("xorstartgenes",ios::in);
+    ifstream iFile("xorstartgenes", ios::in);
 
     cout<<"START XOR TEST"<<endl;
 
@@ -57,7 +96,18 @@ Population *xor_test(int gens) {
     start_genome=new Genome(id,iFile);
     iFile.close();
 
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
+    for(run=0;run<NEAT::num_runs;run++) {
+
+      cout<<"RUN #"<<run<<endl;
+      if (NEAT::num_runs > 1) {
+        sprintf(subpath, "run_%d/", run);
+        ssubpath = subpath + strlen(subpath);
+        makeDir(fpath);
+      }
+      else {
+        ssubpath = subpath;
+      }
+
       //Spawn the Population
       cout<<"Spawning Population off Genome2"<<endl;
 
@@ -70,57 +120,50 @@ Population *xor_test(int gens) {
 	cout<<"Epoch "<<gen<<endl;	
 
 	//This is how to make a custom filename
-	fnamebuf=new ostringstream();
-	(*fnamebuf)<<"gen_"<<gen<<ends;  //needs end marker
+  sprintf(ssubpath, "gen_%d", gen);
 
 	#ifndef NO_SCREEN_OUT
-	cout<<"name of fname: "<<fnamebuf->str()<<endl;
+	cout<<"name of fname: "<<fpath<<endl;
 	#endif
 
-	char temp[50];
-	sprintf (temp, "gen_%d", gen);
-
 	//Check for success
-	if (xor_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes)) {
+	if (xor_epoch(pop,gen,fpath,winnernum,winnergenes,winnernodes)) {
 	  //	if (xor_epoch(pop,gen,fnamebuf->str(),winnernum,winnergenes,winnernodes)) {
 	  //Collect Stats on end of experiment
-	  evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
-	  genes[expcount]=winnergenes;
-	  nodes[expcount]=winnernodes;
+	  evals[run]=NEAT::pop_size*(gen-1)+winnernum;
+	  genes[run]=winnergenes;
+	  nodes[run]=winnernodes;
 	  gen=gens;
 
 	}
-	
-	//Clear output filename
-	fnamebuf->clear();
-	delete fnamebuf;
+
 	
       }
 
-      if (expcount<NEAT::num_runs-1) delete pop;
+      if (run<NEAT::num_runs-1) delete pop;
       
     }
 
     //Average and print stats
     cout<<"Nodes: "<<endl;
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
-      cout<<nodes[expcount]<<endl;
-      totalnodes+=nodes[expcount];
+    for(run=0;run<NEAT::num_runs;run++) {
+      cout<<nodes[run]<<endl;
+      totalnodes+=nodes[run];
     }
     
     cout<<"Genes: "<<endl;
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
-      cout<<genes[expcount]<<endl;
-      totalgenes+=genes[expcount];
+    for(run=0;run<NEAT::num_runs;run++) {
+      cout<<genes[run]<<endl;
+      totalgenes+=genes[run];
     }
     
     cout<<"Evals "<<endl;
     samples=0;
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
-      cout<<evals[expcount]<<endl;
-      if (evals[expcount]>0)
+    for(run=0;run<NEAT::num_runs;run++) {
+      cout<<evals[run]<<endl;
+      if (evals[run]>0)
       {
-	totalevals+=evals[expcount];
+	totalevals+=evals[run];
 	samples++;
       }
     }
@@ -281,20 +324,58 @@ int xor_epoch(Population *pop,int generation,char *filename,int &winnernum,int &
 }
 
 //Perform evolution on single pole balacing, for gens generations
-Population *pole1_test(int gens) {
+Population *pole1_test(int gens, const char* const parent_path) {
     Population *pop=0;
     Genome *start_genome;
     char curword[20];
     int id;
 
-    ostringstream *fnamebuf;
     int gen;
+    char fpath[256]; // Full path to files
+    char* subpath = nullptr; // Subpath, i.e. path after outermost directory
+    char* ssubpath = nullptr;
+    int parent_pathlen = 0;
 
-    int expcount;
+    int run;
     int status;
     int runs[NEAT::num_runs];
     int totalevals;
     int samples;  //For averaging
+
+    // Copy parent path, or use default
+    if (parent_path != nullptr) {
+      strcpy(fpath, parent_path);
+    }
+    else {
+      strcpy(fpath, "exp_pole1");
+    }
+
+    // Remove trailing slash if needed
+    parent_pathlen = strlen(fpath);
+    if (fpath[parent_pathlen-1] == '/') {
+      --parent_pathlen;
+      fpath[parent_pathlen] = '0';
+    }
+
+    // If non-empty path
+    if (parent_pathlen > 0) {
+      // Find available directory
+      makeNextAvailDir(fpath);
+      parent_pathlen = strlen(fpath);
+
+      // Update subpath pointer
+      subpath = fpath + parent_pathlen;
+    }
+    // If empty path
+    else {
+      *fpath = '0';
+      subpath = fpath;
+    }
+
+    // Add trailing slash
+    *subpath = '/';
+    ++subpath;
+    ++parent_pathlen;
 
     memset (runs, 0, NEAT::num_runs * sizeof(int));
 
@@ -311,9 +392,17 @@ Population *pole1_test(int gens) {
     iFile.close();
   
     //Run multiple experiments
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
+    for(run=0;run<NEAT::num_runs;run++) {
 
-      cout<<"EXPERIMENT #"<<expcount<<endl;
+      cout<<"RUN #"<<run<<endl;
+      if (NEAT::num_runs > 1) {
+        sprintf(subpath, "run_%d/", run);
+        ssubpath = subpath + strlen(subpath);
+        makeDir(fpath);
+      }
+      else {
+        ssubpath = subpath;
+      }
 
       cout<<"Start Genome: "<<start_genome<<endl;
       
@@ -328,39 +417,34 @@ Population *pole1_test(int gens) {
       for (gen=1;gen<=gens;gen++) {
 	cout<<"Generation "<<gen<<endl;
 	
-	fnamebuf=new ostringstream();
-	(*fnamebuf)<<"gen_"<<gen<<ends;  //needs end marker
 
-#ifndef NO_SCREEN_OUT
-	cout<<"name of fname: "<<fnamebuf->str()<<endl;
-#endif	
+  sprintf (ssubpath, "gen_%d", gen);
 
-	char temp[50];
-        sprintf (temp, "gen_%d", gen);
+  #ifndef NO_SCREEN_OUT
+    cout<<"name of fname: "<<fpath<<endl;
+  #endif	
 
-	status=pole1_epoch(pop,gen,temp);
+
+	status=pole1_epoch(pop,gen,fpath);
 	//status=(pole1_epoch(pop,gen,fnamebuf->str()));
 	
 	if (status) {
-	  runs[expcount]=status;
+	  runs[run]=status;
 	  gen=gens+1;
 	}
 	
-	fnamebuf->clear();
-	delete fnamebuf;
-	
       }
 
-      if (expcount<NEAT::num_runs-1) delete pop;
+      if (run<NEAT::num_runs-1) delete pop;
     }
 
     totalevals=0;
     samples=0;
-    for(expcount=0;expcount<NEAT::num_runs;expcount++) {
-      cout<<runs[expcount]<<endl;
-      if (runs[expcount]>0)
+    for(run=0;run<NEAT::num_runs;run++) {
+      cout<<runs[run]<<endl;
+      if (runs[run]>0)
       {
-        totalevals+=runs[expcount];
+        totalevals+=runs[run];
         samples++;
       }
     }
@@ -587,14 +671,18 @@ void cart_pole(int action, float *x,float *x_dot, float *theta, float *theta_dot
 //Perform evolution on double pole balacing, for gens generations
 //If velocity is false, then velocity information will be withheld from the 
 //network population (non-Markov)
-Population *pole2_test(int gens,int velocity) {
+Population *pole2_test(int gens,int velocity, const char* const parent_path) {
     Population *pop=0;
     Genome *start_genome;
     char curword[20];
     int id;
 
-    ostringstream *fnamebuf;
     int gen;
+    char fpath[256]; // Full path to files
+    char* subpath = nullptr; // Subpath, i.e. path after outermost directory
+    char* ssubpath = nullptr; // Path after run folder
+    int parent_pathlen = 0;
+
     CartPole *thecart;
 
     //Stat collection variables
@@ -612,7 +700,43 @@ Population *pole2_test(int gens,int velocity) {
     int curtotal; //For averaging
     int samples;  //For averaging
 
-    ofstream oFile("statout",ios::out);
+    // Copy parent path, or use default
+    if (parent_path != nullptr) {
+      strcpy(fpath, parent_path);
+    }
+    else {
+      strcpy(fpath, "exp_pole2");
+    }
+
+    // Remove trailing slash if needed
+    parent_pathlen = strlen(fpath);
+    if (fpath[parent_pathlen-1] == '/') {
+      --parent_pathlen;
+      fpath[parent_pathlen] = '0';
+    }
+
+    // If non-empty path
+    if (parent_pathlen > 0) {
+      // Find available directory
+      makeNextAvailDir(fpath);
+      parent_pathlen = strlen(fpath);
+
+      // Update subpath pointer
+      subpath = fpath + parent_pathlen;
+    }
+    // If empty path
+    else {
+      *fpath = '0';
+      subpath = fpath;
+    }
+
+    // Add trailing slash
+    *subpath = '/';
+    ++subpath;
+    ++parent_pathlen;
+
+    strcpy(subpath, "statout");
+    ofstream oFile(fpath,ios::out);
 
     champg=0;
     champn=0;
@@ -656,6 +780,16 @@ Population *pole2_test(int gens,int velocity) {
     for (run=0;run<NEAT::num_runs;run++) {
       
       cout<<"RUN #"<<run<<endl;
+      if (NEAT::num_runs > 1) {
+        sprintf(subpath, "run_%d/", run);
+        ssubpath = subpath + strlen(subpath);
+        #ifndef DISABLE_DETAILED_FILEOUT
+          makeDir(fpath);
+        #endif
+      }
+      else {
+        ssubpath = subpath;
+      }
 
       //Spawn the Population from starter gene
       cout<<"Spawning Population off Genome"<<endl;
@@ -673,16 +807,14 @@ Population *pole2_test(int gens,int velocity) {
       for (gen=1;gen<=gens;gen++) {
 	cout<<"Epoch "<<gen<<endl;
 	
-	fnamebuf=new ostringstream();
-	(*fnamebuf)<<"gen_"<<gen<<ends;  //needs end marker
-#ifndef NO_SCREEN_OUT
-	cout<<"name of fname: "<<fnamebuf->str()<<endl;
-#endif
+  sprintf (ssubpath, "gen_%d", gen);
+  
+  #ifndef NO_SCREEN_OUT
+    cout<<"name of fname: "<<fpath<<endl;
+  #endif
 
-	char temp[50];
-        sprintf (temp, "gen_%d", gen);
 
-	highscore=pole2_epoch(pop,gen,temp,velocity, thecart,champg,champn,winnernum,oFile);
+	highscore=pole2_epoch(pop,gen,fpath,velocity, thecart,champg,champn,winnernum,oFile);
 	//highscore=pole2_epoch(pop,gen,fnamebuf->str(),velocity, thecart,champg,champn,winnernum,oFile);  
 	
 	//cout<<"GOT HIGHSCORE FOR GEN "<<gen<<": "<<highscore-1<<endl;
@@ -690,9 +822,6 @@ Population *pole2_test(int gens,int velocity) {
 	record[run][gen-1]=highscore-1;
 	genesrec[run][gen-1]=champg;
 	nodesrec[run][gen-1]=champn;
-	
-	fnamebuf->clear();
-	delete fnamebuf;
 	
 	//Stop right at the winnergen
 	if (((pop->winnergen)!=0)&&(gen==(pop->winnergen))) {

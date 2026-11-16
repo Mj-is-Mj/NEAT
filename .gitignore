@@ -1,3 +1,9 @@
+# Build directory
+build
+
+# Any experiemental data
+exp_*
+
 # Compiled Object files
 *.slo
 *.lo
@@ -14,5 +20,3 @@
 
 # Temporary files
 *~
-
-build
